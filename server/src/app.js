@@ -1,0 +1,48 @@
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+// Routes
+const authRoutes = require('./routes/authRoutes');
+const complaintRoutes = require('./routes/complaintRoutes');
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+// Route handlers
+app.use('/api/auth', authRoutes);
+app.use('/api/complaints', complaintRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    status: 'error',
+    message: err.message || 'Internal server error',
+  });
+});
+
+// Database connection & Server start
+const PORT = process.env.PORT || 5000;
+const DB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/civicsense';
+
+mongoose.connect(DB_URI)
+  .then(() => {
+    console.log('DB connection successful');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => console.log('DB connection error: ', err));
+
+module.exports = app;
