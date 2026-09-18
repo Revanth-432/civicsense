@@ -1,10 +1,35 @@
 # CivicSense
 
-CivicSense is a platform for citizens to report complaints (like potholes, garbage) and for officers/admins to track and update the status of these complaints.
+An AI-Powered Civic Issue Management Platform allowing citizens to report local issues (potholes, garbage, road damage) and administrators to track their resolution.
 
-## Structure
-- `client/`: React frontend (Vite, Tailwind, React Router).
-- `server/`: Node.js Express backend (MongoDB, JWT, Cloudinary).
+## Live Demo
+*Pending Deployment*
 
-## Setup
-See `.env.example` (or configure `.env`) for backend environment variables.
+## Tech Stack
+* **Frontend:** React, Vite, Tailwind CSS, React Router, Axios
+* **Backend:** Node.js, Express.js
+* **Database:** MongoDB (Atlas), Mongoose
+* **Storage:** Cloudinary (Image uploads)
+* **Authentication:** JWT, bcrypt
+
+## Features
+* **Role-Based Access Control:** Distinct experiences for Citizens and Admins/Officers.
+* **Complaint Tracking:** Users can upload images and descriptions of civic issues.
+* **Strict State Machine:** Complaints follow a strict resolution path (SUBMITTED → VERIFIED → ASSIGNED → IN_PROGRESS → RESOLVED → CLOSED).
+* **Status History:** Complete audit trail of who changed a complaint status and when.
+
+## Local Setup
+1. Clone the repository.
+2. Run `npm install` inside both the `client/` and `server/` directories.
+3. Create a `.env` file in the `server/` directory based on `.env.example`.
+4. Start the backend: `cd server && npm run dev`
+5. Start the frontend: `cd client && npm run dev`
+
+## Demo Credentials (Local)
+**Citizen Account:**
+* Email: demo-citizen@civicsense.com
+* Password: password123
+
+**Officer Account:**
+* Email: demo-officer@civicsense.com
+* Password: password123
