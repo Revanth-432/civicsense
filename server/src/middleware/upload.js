@@ -13,14 +13,57 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'civicsense_complaints',
-    allowed_formats: ['jpg', 'png', 'jpeg'],
-  },
+const storage = multer.memoryStorage();
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Not an image! Please upload an image.'), false);
+    }
+  }
 });
 
-const upload = multer({ storage: storage });
+const exifr = require('exifr');
 
-module.exports = upload;
+const processImage = async (req, res, next) => {
+  if (!req.file) return next();
+
+  try {
+    // 1. Extract EXIF data
+    const exifData = await exifr.parse(req.file.buffer);
+    if (exifData && exifData.latitude && exifData.longitude) {
+      req.exifLocation = {
+        latitude: exifData.latitude,
+        longitude: exifData.longitude
+      };
+    }
+
+    // 2. Upload to Cloudinary using upload_stream
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'civicsense_complaints',
+      },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          return next(error);
+        }
+        // Attaching the cloudinary URL to req.file.path so controller works seamlessly
+        req.file.path = result.secure_url;
+        next();
+      }
+    );
+
+    // Write buffer to stream
+    uploadStream.end(req.file.buffer);
+
+  } catch (error) {
+    console.error("Image processing error:", error);
+    next(error);
+  }
+};
+
+module.exports = { upload, processImage };

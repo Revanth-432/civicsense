@@ -3,6 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import { ArrowLeft } from 'lucide-react';
+import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default marker icon in Leaflet
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const ComplaintDetail = () => {
   const { id } = useParams();
@@ -14,8 +30,11 @@ const ComplaintDetail = () => {
   const [error, setError] = useState('');
   
   const [newStatus, setNewStatus] = useState('');
+  const [newPriority, setNewPriority] = useState('');
   const [note, setNote] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  const priorityOptions = ['LOW', 'MEDIUM', 'HIGH'];
 
   const statusOptions = [
     'SUBMITTED', 'VERIFIED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'
@@ -27,6 +46,7 @@ const ComplaintDetail = () => {
         const res = await api.get(`/complaints/${id}`);
         setComplaint(res.data.data.complaint);
         setNewStatus(res.data.data.complaint.status);
+        setNewPriority(res.data.data.complaint.priority || 'LOW');
       } catch (err) {
         setError('Failed to load complaint details');
       } finally {
@@ -40,7 +60,11 @@ const ComplaintDetail = () => {
     e.preventDefault();
     setUpdating(true);
     try {
-      const res = await api.patch(`/complaints/${id}/status`, { status: newStatus, note });
+      const res = await api.patch(`/complaints/${id}/status`, { 
+        status: newStatus, 
+        priority: newPriority,
+        note 
+      });
       setComplaint(res.data.data.complaint);
       setNote('');
     } catch (err) {
@@ -73,9 +97,18 @@ const ComplaintDetail = () => {
               {complaint.category}
             </p>
           </div>
-          <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-            {complaint.status}
-          </span>
+          <div className="flex space-x-2">
+            <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${
+              complaint.priority === 'HIGH' ? 'bg-red-100 text-red-800' :
+              complaint.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {complaint.priority || 'LOW'} PRIORITY
+            </span>
+            <span className="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+              {complaint.status}
+            </span>
+          </div>
         </div>
         <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
           <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
@@ -91,6 +124,40 @@ const ComplaintDetail = () => {
               <dt className="text-sm font-medium text-gray-500">Description</dt>
               <dd className="mt-1 text-sm text-gray-900">{complaint.description}</dd>
             </div>
+            
+            {complaint.address && (
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-gray-500">Address</dt>
+                <dd className="mt-1 text-sm text-gray-900">{complaint.address}</dd>
+              </div>
+            )}
+
+            {complaint.location && complaint.location.coordinates && (
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-gray-500 mb-2">Location Map</dt>
+                <dd className="mt-1">
+                  <div className="h-64 w-full rounded-md overflow-hidden border border-gray-300 relative z-0">
+                    <MapContainer 
+                      center={[complaint.location.coordinates[1], complaint.location.coordinates[0]]} 
+                      zoom={15} 
+                      style={{ height: '100%', width: '100%' }}
+                      scrollWheelZoom={false}
+                      dragging={false}
+                      zoomControl={false}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Marker position={[complaint.location.coordinates[1], complaint.location.coordinates[0]]} />
+                    </MapContainer>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Coordinates: {complaint.location.coordinates[1].toFixed(6)}, {complaint.location.coordinates[0].toFixed(6)}
+                  </p>
+                </dd>
+              </div>
+            )}
             {complaint.imageUrl && (
               <div className="sm:col-span-2">
                 <dt className="text-sm font-medium text-gray-500 mb-2">Image Attachment</dt>
@@ -120,6 +187,18 @@ const ComplaintDetail = () => {
               </select>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700">Update Priority</label>
+              <select 
+                value={newPriority} 
+                onChange={(e) => setNewPriority(e.target.value)}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
+              >
+                {priorityOptions.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700">Note (Optional)</label>
               <textarea 
                 value={note}
@@ -131,10 +210,10 @@ const ComplaintDetail = () => {
             </div>
             <button 
               type="submit" 
-              disabled={updating || newStatus === complaint.status}
+              disabled={updating || (newStatus === complaint.status && newPriority === complaint.priority)}
               className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {updating ? 'Updating...' : 'Update Status'}
+              {updating ? 'Updating...' : 'Update Details'}
             </button>
           </form>
         </div>

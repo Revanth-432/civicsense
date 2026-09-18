@@ -41,6 +41,25 @@ const complaintSchema = new mongoose.Schema({
     required: [true, 'Please provide a category'],
     trim: true,
   },
+  priority: {
+    type: String,
+    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    default: 'LOW',
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    }
+  },
+  address: {
+    type: String,
+  },
   description: {
     type: String,
     required: [true, 'Please provide a description'],
@@ -55,6 +74,8 @@ const complaintSchema = new mongoose.Schema({
   },
   statusHistory: [statusHistorySchema]
 }, { timestamps: true });
+
+complaintSchema.index({ location: "2dsphere" });
 
 const Complaint = mongoose.model('Complaint', complaintSchema);
 module.exports = { Complaint, statusEnum };

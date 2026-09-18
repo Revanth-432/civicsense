@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import MapPicker from '../../components/MapPicker';
 
 const NewComplaint = () => {
   const [category, setCategory] = useState('POTHOLE');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState(null);
+  const [position, setPosition] = useState(null); // [lat, lng]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,6 +24,14 @@ const NewComplaint = () => {
       formData.append('description', description);
       if (image) {
         formData.append('image', image);
+      }
+      if (position) {
+        formData.append('latitude', position[0]);
+        formData.append('longitude', position[1]);
+      } else {
+        setError('Please select a location on the map.');
+        setLoading(false);
+        return;
       }
 
       await api.post('/complaints', formData, {
@@ -75,6 +85,11 @@ const NewComplaint = () => {
             className="mt-1 p-2 block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border border-gray-300 rounded-md"
             placeholder="Please describe the issue in detail..."
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+          <MapPicker position={position} setPosition={setPosition} />
         </div>
 
         <div>

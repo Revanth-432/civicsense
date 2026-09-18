@@ -12,6 +12,7 @@ import Dashboard from './pages/Citizen/Dashboard';
 import NewComplaint from './pages/Citizen/NewComplaint';
 import ComplaintDetail from './pages/ComplaintDetail';
 import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminMap from './pages/Admin/Map';
 
 function App() {
   return (
@@ -57,6 +58,14 @@ function App() {
               element={
                 <ProtectedRoute roles={['officer', 'admin']}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/map" 
+              element={
+                <ProtectedRoute roles={['officer', 'admin']}>
+                  <AdminMap />
                 </ProtectedRoute>
               } 
             />

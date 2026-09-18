@@ -6,14 +6,14 @@ const {
   updateComplaintStatus
 } = require('../controllers/complaintController');
 const { protect, restrictTo } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { upload, processImage } = require('../middleware/upload');
 
 const router = express.Router();
 
 router.use(protect); // All complaint routes require auth
 
 router.route('/')
-  .post(restrictTo('citizen'), upload.single('image'), createComplaint)
+  .post(restrictTo('citizen'), upload.single('image'), processImage, createComplaint)
   .get(getComplaints);
 
 router.route('/:id')
