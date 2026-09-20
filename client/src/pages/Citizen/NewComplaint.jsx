@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import MapPicker from '../../components/MapPicker';
+import ImageAnalyzer from '../../components/ImageAnalyzer';
 
 const NewComplaint = () => {
   const [category, setCategory] = useState('POTHOLE');
@@ -10,6 +11,13 @@ const NewComplaint = () => {
   const [position, setPosition] = useState(null); // [lat, lng]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [aiTags, setAiTags] = useState([]);
+
+  const handleAIResults = (detections) => {
+    if (!detections || detections.length === 0) return;
+    const uniqueTags = [...new Set(detections.map((det) => det.cls))];
+    setAiTags(uniqueTags);
+  };
 
   const navigate = useNavigate();
 
@@ -24,6 +32,9 @@ const NewComplaint = () => {
       formData.append('description', description);
       if (image) {
         formData.append('image', image);
+      }
+      if (aiTags.length > 0) {
+        formData.append('aiTags', JSON.stringify(aiTags));
       }
       if (position) {
         formData.append('latitude', position[0]);
@@ -93,13 +104,25 @@ const NewComplaint = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Upload Image</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Upload & Analyze Image</label>
+          <div className="border border-gray-300 rounded-md overflow-hidden">
+            <ImageAnalyzer 
+              onAnalysisComplete={handleAIResults} 
+              onImageSelect={setImage} 
+            />
+          </div>
+          {aiTags.length > 0 && (
+            <div className="mt-4">
+              <span className="text-sm font-medium text-gray-700">AI Detected Tags: </span>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {aiTags.map((tag, idx) => (
+                  <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div>

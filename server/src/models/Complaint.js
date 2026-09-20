@@ -43,8 +43,16 @@ const complaintSchema = new mongoose.Schema({
   },
   priority: {
     type: String,
-    enum: ['LOW', 'MEDIUM', 'HIGH'],
+    enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
     default: 'LOW',
+  },
+  aiTags: [{
+    type: String
+  }],
+  aiVerification: {
+    type: String,
+    enum: ['VERIFIED', 'NEEDS_REVIEW', 'PENDING'],
+    default: 'PENDING'
   },
   location: {
     type: {

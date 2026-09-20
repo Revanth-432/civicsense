@@ -1,0 +1,28 @@
+{
+  "total_images": 1530,
+  "images_per_split": {
+    "train": 1224,
+    "val": 152,
+    "test": 154
+  },
+  "boxes_per_class_per_split": {
+    "train": {
+      "POTHOLE": 2567,
+      "ROAD_CRACK": 908
+    },
+    "val": {
+      "POTHOLE": 315,
+      "ROAD_CRACK": 109
+    },
+    "test": {
+      "ROAD_CRACK": 122,
+      "POTHOLE": 305
+    }
+  },
+  "classes": [
+    "POTHOLE",
+    "ROAD_CRACK",
+    "GARBAGE"
+  ],
+  "random_seed": 42
+}

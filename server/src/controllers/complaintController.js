@@ -36,9 +36,33 @@ const getAddressFromCoordinates = async (lat, lng) => {
   }
 };
 
+// Modular Extensible Severity Engine
+const calculateSeverity = (aiTags, detectionCount = 1) => {
+  if (!aiTags || !Array.isArray(aiTags) || aiTags.length === 0) return 'LOW';
+  
+  let score = 0;
+  
+  // Base points for presence of specific tags
+  aiTags.forEach(tag => {
+    const t = tag.toUpperCase();
+    if (t === 'POTHOLE') score += 3;
+    else if (t === 'ROAD_DAMAGE' || t === 'ROAD_CRACK') score += 2;
+    else score += 1;
+  });
+
+  // Multiply by detectionCount
+  // Future phases can expand this function with boxArea, roadImportance, clusterReportCount, etc.
+  score = score * detectionCount;
+  
+  if (score >= 10) return 'CRITICAL';
+  if (score >= 6) return 'HIGH';
+  if (score >= 3) return 'MEDIUM';
+  return 'LOW';
+};
+
 const createComplaint = async (req, res) => {
   try {
-    const { category, description, priority = 'LOW', latitude, longitude } = req.body;
+    const { category, description, latitude, longitude } = req.body;
     
     // Validate GPS coordinates
     const lat = parseFloat(latitude);
@@ -51,6 +75,56 @@ const createComplaint = async (req, res) => {
     if (req.file) {
       imageUrl = req.file.path; // Cloudinary URL
     }
+
+    // Fetch trusted AI tags from the server-side ML microservice
+    let aiTags = [];
+    let aiVerification = 'PENDING';
+
+    if (imageUrl) {
+      try {
+        const mlResponse = await fetch('http://127.0.0.1:8000/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-ML-Service-Key': 'civicsense-internal-secret'
+          },
+          body: JSON.stringify({ image_url: imageUrl }),
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (mlResponse.ok) {
+          const mlData = await mlResponse.json();
+          // Extract the verified detections from the FastAPI response
+          let detections = mlData.detections || [];
+          if (!Array.isArray(detections)) detections = [];
+
+          // Ensure tags are strings for the existing calculateSeverity function
+          aiTags = detections.map(d => typeof d === 'string' ? d : (d.class || d.name || d.tag || ''));
+
+          if (aiTags.length > 0) {
+            const normalizedCategory = category.toUpperCase().replace(/\s+/g, '_');
+            const hasMatch = aiTags.some(tag => tag.toUpperCase() === normalizedCategory);
+            aiVerification = hasMatch ? 'VERIFIED' : 'NEEDS_REVIEW';
+          } else {
+            aiVerification = 'NEEDS_REVIEW';
+          }
+        } else {
+          console.error(`ML service returned error status: ${mlResponse.status}`);
+          // Fails to fetch detections, stays PENDING
+        }
+      } catch (error) {
+        console.error("Failed to verify image with ML service:", error.message);
+        // Timeout or network error, stays PENDING
+      }
+    } else {
+      // No image provided, cannot verify
+      aiVerification = 'NEEDS_REVIEW';
+    }
+
+    // Calculate priority using the extensible engine
+    // Currently using aiTags.length as a proxy for detectionCount until we pass raw detection arrays
+    const detectionCount = Math.max(1, aiTags.length);
+    const priority = calculateSeverity(aiTags, detectionCount);
 
     // Log EXIF data if available and different
     if (req.exifLocation) {
@@ -65,6 +139,8 @@ const createComplaint = async (req, res) => {
       category,
       description,
       priority,
+      aiTags,
+      aiVerification,
       location: {
         type: 'Point',
         coordinates: [lng, lat] // MongoDB expects [longitude, latitude]
@@ -182,7 +258,7 @@ const updateComplaintStatus = async (req, res) => {
     }
 
     // Update priority if provided
-    if (priority && ['LOW', 'MEDIUM', 'HIGH'].includes(priority) && priority !== complaint.priority) {
+    if (priority && ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(priority) && priority !== complaint.priority) {
       complaint.priority = priority;
       
       // If we are updating priority but NOT status, we might still want to log a note 

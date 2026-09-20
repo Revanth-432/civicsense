@@ -27,55 +27,55 @@ function App() {
           {/* Protected Routes - App Layout */}
           <Route element={<AppLayout />}>
             {/* Citizen Routes */}
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute roles={['citizen']}>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/complaints/new" 
+            <Route
+              path="/complaints/new"
               element={
                 <ProtectedRoute roles={['citizen']}>
                   <NewComplaint />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/complaints/:id" 
+            <Route
+              path="/complaints/:id"
               element={
                 <ProtectedRoute roles={['citizen', 'officer', 'admin']}>
                   <ComplaintDetail />
                 </ProtectedRoute>
-              } 
+              }
             />
 
             {/* Admin / Officer Routes */}
-            <Route 
-              path="/admin/dashboard" 
+            <Route
+              path="/admin/dashboard"
               element={
                 <ProtectedRoute roles={['officer', 'admin']}>
                   <AdminDashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/map" 
+            <Route
+              path="/admin/map"
               element={
                 <ProtectedRoute roles={['officer', 'admin']}>
                   <AdminMap />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/complaints/:id" 
+            <Route
+              path="/admin/complaints/:id"
               element={
                 <ProtectedRoute roles={['officer', 'admin']}>
                   <ComplaintDetail />
                 </ProtectedRoute>
-              } 
+              }
             />
           </Route>
         </Routes>
