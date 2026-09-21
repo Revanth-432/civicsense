@@ -33,9 +33,7 @@ const NewComplaint = () => {
       if (image) {
         formData.append('image', image);
       }
-      if (aiTags.length > 0) {
-        formData.append('aiTags', JSON.stringify(aiTags));
-      }
+      
       if (position) {
         formData.append('latitude', position[0]);
         formData.append('longitude', position[1]);
