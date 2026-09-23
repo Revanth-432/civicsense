@@ -1,0 +1,23 @@
+﻿{
+  "epochs": 100,
+  "model": "YOLOv8n",
+  "dataset": "RDD2022 India",
+  "overall": {
+    "precision": 0.478,
+    "recall": 0.400,
+    "mAP_0.5": 0.404,
+    "mAP_0.5_0.95": 0.161
+  },
+  "per_class": {
+    "POTHOLE": {
+      "precision": 0.508,
+      "recall": 0.387,
+      "mAP_0.5": 0.398
+    },
+    "ROAD_CRACK": {
+      "precision": 0.448,
+      "recall": 0.413,
+      "mAP_0.5": 0.411
+    }
+  }
+}

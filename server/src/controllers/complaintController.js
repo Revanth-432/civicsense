@@ -1,4 +1,7 @@
 const { Complaint, statusEnum } = require('../models/Complaint');
+const IssueCluster = require('../models/IssueCluster');
+const { processForClustering, enrichComplaintWithEmbedding } = require('../services/deduplicationService');
+const { calculateDueDate } = require('../config/slaConfig');
 
 const validTransitions = {
   'SUBMITTED': ['VERIFIED', 'ASSIGNED', 'REJECTED'],
@@ -134,7 +137,7 @@ const createComplaint = async (req, res) => {
     // Get address via reverse geocoding
     const address = await getAddressFromCoordinates(lat, lng);
 
-    const complaint = await Complaint.create({
+    let complaint = new Complaint({
       citizenId: req.user._id,
       category,
       description,
@@ -153,8 +156,56 @@ const createComplaint = async (req, res) => {
         oldStatus: null,
         newStatus: 'SUBMITTED',
         note: 'Complaint submitted'
-      }]
+      }],
+      dueAt: calculateDueDate(category, new Date())
     });
+
+    // 1. Generate Embedding
+    complaint = await enrichComplaintWithEmbedding(complaint);
+
+    // 2. Process for Clustering
+    const clusterDecision = await processForClustering(complaint);
+
+    // 3. Handle the Three-Way Decision
+    if (clusterDecision.action === 'NEW_CLUSTER') {
+      const newCluster = new IssueCluster({
+        title: `${category.replace(/_/g, ' ')} Issue`,
+        description: complaint.description,
+        category: complaint.category,
+        location: complaint.location,
+        severity: complaint.priority,
+        complaints: [complaint._id],
+        reportCount: 1,
+        auditHistory: [{
+          action: 'CREATED',
+          performedBy: req.user._id,
+          reason: 'Initial creation from unique complaint'
+        }]
+      });
+      await newCluster.save();
+
+      complaint.clusterId = newCluster._id;
+      complaint.duplicateStatus = 'UNIQUE';
+      complaint.duplicateScore = clusterDecision.score || 0;
+      await complaint.save();
+
+    } else if (clusterDecision.action === 'AUTO_LINK' || clusterDecision.action === 'OFFICER_REVIEW') {
+      const existingCluster = await IssueCluster.findById(clusterDecision.clusterId);
+      if (existingCluster) {
+        existingCluster.complaints.push(complaint._id);
+        existingCluster.reportCount += 1;
+        await existingCluster.save();
+
+        complaint.clusterId = existingCluster._id;
+        complaint.duplicateStatus = clusterDecision.action === 'AUTO_LINK' ? 'CONFIRMED_DUPLICATE' : 'POTENTIAL_DUPLICATE';
+        complaint.duplicateScore = clusterDecision.score;
+        await complaint.save();
+      } else {
+        // Fallback if cluster not found
+        complaint.duplicateStatus = 'UNIQUE';
+        await complaint.save();
+      }
+    }
 
     res.status(201).json({
       status: 'success',

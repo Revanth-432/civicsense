@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { initSocket } = require('./utils/socket');
 const cors = require('cors');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
@@ -9,6 +11,9 @@ dotenv.config();
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const complaintRoutes = require('./routes/complaintRoutes');
+const clusterRoutes = require('./routes/clusterRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const { startSlaMonitor } = require('./jobs/slaMonitor');
 
 const app = express();
 
@@ -22,6 +27,8 @@ if (process.env.NODE_ENV === 'development') {
 // Route handlers
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
+app.use('/api/clusters', clusterRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -36,10 +43,14 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const DB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/civicsense';
 
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+
 mongoose.connect(DB_URI)
   .then(() => {
     console.log('DB connection successful');
-    app.listen(PORT, () => {
+    startSlaMonitor(); // Start the background job
+    httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })

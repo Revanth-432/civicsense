@@ -80,7 +80,30 @@ const complaintSchema = new mongoose.Schema({
     enum: statusEnum,
     default: 'SUBMITTED',
   },
-  statusHistory: [statusHistorySchema]
+  statusHistory: [statusHistorySchema],
+  clusterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'IssueCluster'
+  },
+  duplicateStatus: {
+    type: String,
+    enum: ['UNIQUE', 'POTENTIAL_DUPLICATE', 'CONFIRMED_DUPLICATE'],
+    default: 'UNIQUE'
+  },
+  duplicateScore: {
+    type: Number,
+    default: 0
+  },
+  textEmbedding: {
+    type: [Number]
+  },
+  dueAt: {
+    type: Date
+  },
+  slaBreached: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 complaintSchema.index({ location: "2dsphere" });

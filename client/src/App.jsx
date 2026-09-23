@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './layouts/AppLayout';
+import NotificationTest from './components/NotificationTest';
 
 // Pages
 import Landing from './pages/Landing';
@@ -17,6 +18,7 @@ import AdminMap from './pages/Admin/Map';
 function App() {
   return (
     <AuthProvider>
+      <NotificationTest />
       <Router>
         <Routes>
           {/* Public Routes */}
