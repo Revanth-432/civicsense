@@ -85,6 +85,10 @@ const complaintSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'IssueCluster'
   },
+  assignedOfficer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   duplicateStatus: {
     type: String,
     enum: ['UNIQUE', 'POTENTIAL_DUPLICATE', 'CONFIRMED_DUPLICATE'],

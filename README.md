@@ -32,4 +32,4 @@ An AI-Powered Civic Issue Management Platform allowing citizens to report local 
 
 **Officer Account:**
 * Email: demo-officer@civicsense.com
-* Password: password123
+* Password: password12

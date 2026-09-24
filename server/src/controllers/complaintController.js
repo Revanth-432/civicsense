@@ -2,6 +2,8 @@ const { Complaint, statusEnum } = require('../models/Complaint');
 const IssueCluster = require('../models/IssueCluster');
 const { processForClustering, enrichComplaintWithEmbedding } = require('../services/deduplicationService');
 const { calculateDueDate } = require('../config/slaConfig');
+const axios = require('axios');
+const FormData = require('form-data');
 
 const validTransitions = {
   'SUBMITTED': ['VERIFIED', 'ASSIGNED', 'REJECTED'],
@@ -83,20 +85,21 @@ const createComplaint = async (req, res) => {
     let aiTags = [];
     let aiVerification = 'PENDING';
 
-    if (imageUrl) {
+    if (imageUrl && req.file && req.file.buffer) {
       try {
-        const mlResponse = await fetch('http://127.0.0.1:8000/predict', {
-          method: 'POST',
+        const form = new FormData();
+        form.append('file', req.file.buffer, { filename: req.file.originalname || 'image.jpg' });
+
+        const mlResponse = await axios.post('http://127.0.0.1:8000/predict', form, {
           headers: {
-            'Content-Type': 'application/json',
-            'X-ML-Service-Key': 'civicsense-internal-secret'
+            ...form.getHeaders(),
+            'x-ml-service-key': 'civicsense-internal-secret'
           },
-          body: JSON.stringify({ image_url: imageUrl }),
-          signal: AbortSignal.timeout(5000)
+          timeout: 5000
         });
 
-        if (mlResponse.ok) {
-          const mlData = await mlResponse.json();
+        if (mlResponse.status === 200) {
+          const mlData = mlResponse.data;
           // Extract the verified detections from the FastAPI response
           let detections = mlData.detections || [];
           if (!Array.isArray(detections)) detections = [];

@@ -13,6 +13,8 @@ const authRoutes = require('./routes/authRoutes');
 const complaintRoutes = require('./routes/complaintRoutes');
 const clusterRoutes = require('./routes/clusterRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const { startSlaMonitor } = require('./jobs/slaMonitor');
 
 const app = express();
@@ -29,6 +31,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/clusters', clusterRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

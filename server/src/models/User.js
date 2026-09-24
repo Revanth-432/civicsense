@@ -25,6 +25,20 @@ const userSchema = new mongoose.Schema({
     enum: ['citizen', 'officer', 'admin'],
     default: 'citizen',
   },
+  department: String,
+  zone: String,
+  currentActiveCases: {
+    type: Number,
+    default: 0
+  },
+  maxActiveCases: {
+    type: Number,
+    default: 15
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true
+  }
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {
